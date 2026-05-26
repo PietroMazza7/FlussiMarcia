@@ -1,0 +1,85 @@
+{
+  "nodi": [
+    {
+      "nome": "S",
+      "probabilita": {
+        "A": 0.4,
+        "D": 0.6
+      }
+    },
+    {
+      "nome": "A",
+      "probabilita": {
+        "B": 1.0
+      }
+    },
+    {
+      "nome": "B",
+      "probabilita": {
+        "C": 1.0
+      }
+    },
+    {
+      "nome": "C",
+      "probabilita": {
+        "S": 1.0
+      }
+    },
+    {
+      "nome": "D",
+      "probabilita": {
+        "B": 0.4,
+        "E": 0.6
+      }
+    },
+    {
+      "nome": "E",
+      "probabilita": {
+        "C": 1.0
+      }
+    }
+  ],
+
+  "collegamenti": [
+    {
+      "from": "S",
+      "to": "A",
+      "tempo": 10
+    },
+    {
+      "from": "A",
+      "to": "B",
+      "tempo": 10
+    },
+    {
+      "from": "B",
+      "to": "C",
+      "tempo": 10
+    },
+    {
+      "from": "C",
+      "to": "S",
+      "tempo": 10
+    },
+    {
+      "from": "S",
+      "to": "D",
+      "tempo": 20
+    },
+    {
+      "from": "D",
+      "to": "B",
+      "tempo": 20
+    },
+    {
+      "from": "D",
+      "to": "E",
+      "tempo": 30
+    },
+    {
+      "from": "E",
+      "to": "C",
+      "tempo": 30
+    }
+  ]
+}
