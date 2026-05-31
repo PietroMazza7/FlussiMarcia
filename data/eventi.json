@@ -1,0 +1,12 @@
+[
+    {"timestamp":"", "tipo": "genera", "nodo": "S"},
+    {"timestamp":"", "tipo": "genera", "nodo": "S"},
+    {"timestamp":"", "tipo": "in_arrivo", "nodo": "A", "tempo": 15},
+    {"timestamp":"", "tipo": "in_arrivo", "nodo": "D", "tempo": 30},
+    {"timestamp":"", "tipo": "in_arrivo", "nodo": "C", "tempo": 15},
+    {"timestamp":"", "tipo": "genera", "nodo": "S"},
+    {"timestamp":"", "tipo": "conta", "nodo": "B"},
+    {"timestamp":"", "tipo": "in_arrivo", "nodo": "B", "tempo": 10},
+    {"timestamp":"", "tipo": "conta", "nodo": "C"},
+    {"timestamp":"", "tipo": "conta", "nodo": "S"}
+]

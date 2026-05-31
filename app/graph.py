@@ -3,7 +3,6 @@ from collections import deque
 from datetime import datetime, timedelta
 import random
 
-
 @dataclass
 class Collegamento:
     partenza: "Nodo"
@@ -11,22 +10,17 @@ class Collegamento:
     tempo: int
     ingressi: deque[datetime] = field(default_factory=deque)
 
-    def aggiungi(self):
-        self.ingressi.append(datetime.now())
+    def aggiungi(self, ora):
+        self.ingressi.append(ora)
 
-    def arrivi_entro(self, minuti: int) -> int:
-        ora = datetime.now()
+    def arrivi_entro(self, ora, minuti: int) -> int:
         soglia = ora + timedelta(minutes=minuti)
 
-        return sum(
-            ingresso + timedelta(minutes=self.tempo) <= soglia
-            for ingresso in self.ingressi
-        )
+        return sum(ingresso + timedelta(minutes=self.tempo) <= soglia for ingresso in self.ingressi)
 
     def rimuovi_piu_vicino_arrivo(self):
         if self.ingressi:
             self.ingressi.popleft()
-
 
 @dataclass
 class Nodo:
@@ -36,21 +30,14 @@ class Nodo:
     uscenti: list["Collegamento"] = field(default_factory=list)
     entranti: list["Collegamento"] = field(default_factory=list)
 
-    def genera(self):
+    def genera(self, ora):
         if not self.uscenti:
             return
 
-        pesi = [
-            self.probabilita[c.arrivo.nome]
-            for c in self.uscenti
-        ]
+        pesi = [self.probabilita[c.arrivo.nome] for c in self.uscenti]
+        arco = random.choices(self.uscenti, weights=pesi)[0]
 
-        arco = random.choices(
-            self.uscenti,
-            weights=pesi
-        )[0]
-
-        arco.aggiungi()
+        arco.aggiungi(ora)
 
     def scegli_da_rimuovere(self):
         candidato = None
@@ -69,9 +56,12 @@ class Nodo:
 
         return candidato
 
-    def conta(self):
+    def conta(self, ora):
         c = self.scegli_da_rimuovere()
 
         if c:
             c.rimuovi_piu_vicino_arrivo()
-            self.genera()
+            self.genera(ora)
+
+    def in_arrivo(self, ora, minuti):
+        return sum(coll.arrivi_entro(ora, minuti) for coll in self.entranti)
