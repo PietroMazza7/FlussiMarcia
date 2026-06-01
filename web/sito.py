@@ -10,6 +10,17 @@ sito = Flask(__name__)
 nodi = carica_grafo("data/grafo.json")
 sistema = Sistema(nodi)
 
+# carica stato se esiste
+try:
+    from app.loader import carica_stato
+
+    stato = carica_stato("data/stato.json", nodi)
+
+    sistema.totale_partiti = stato["totale_partiti"]
+    sistema.totale_arrivati = stato["totale_arrivati"]
+
+except FileNotFoundError:
+    pass
 
 @sito.get("/")
 def index():
@@ -39,6 +50,7 @@ def conta(nome):
     if nome == "S":
         sistema.totale_arrivati += 1
 
+    sistema.salva("data/stato.json", nodi)
     return redirect(
         url_for("pagina_nodo", nome=nome)
     )
@@ -48,7 +60,7 @@ def conta(nome):
 def genera():
     nodi["S"].genera(datetime.now())
     sistema.totale_partiti += 1
-
+    sistema.salva("data/stato.json", nodi)
     return redirect(
         url_for("pagina_nodo", nome="S")
     )
