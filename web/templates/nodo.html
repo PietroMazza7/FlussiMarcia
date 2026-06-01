@@ -1,28 +1,49 @@
-<h1>{{ nodo.nome }}</h1>
+{% extends "base.html" %}
 
-<p>
-Persone in arrivo entro 10 minuti: {{ arrivi }}
-</p>
+{% block content %}
+
+<h1>Nodo {{ nodo.nome }}</h1>
+
+<div class="card">
+    <div class="stat">
+        Persone in arrivo (10 min): <b id="arrivi">{{ arrivi }}</b>
+    </div>
+</div>
 
 {% if nodo.nome == "S" %}
-<form method="POST" action="{{ url_for('genera') }}">
-    <button type="submit">Genera</button>
-</form>
 
-<form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
-    <button type="submit">Conta arrivo</button>
-</form>
+<div class="card">
+    <form method="POST" action="{{ url_for('genera') }}">
+        <button class="btn-green">GENERA PERSONA</button>
+    </form>
 
-<p>
-Totale partiti: {{ sistema.totale_partiti }}<br>
-Totale arrivati: {{ sistema.totale_arrivati }}<br>
-Sul percorso: {{ sistema.sul_percorso }}
-</p>
+    <form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
+        <button class="btn-red">CONTA ARRIVO</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="stat">Partiti: {{ sistema.totale_partiti }}</div>
+    <div class="stat">Arrivati: {{ sistema.totale_arrivati }}</div>
+    <div class="stat">Sul percorso: {{ sistema.sul_percorso }}</div>
+</div>
 
 {% else %}
-<form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
-    <button type="submit">Conta</button>
-</form>
+
+<div class="card">
+    <form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
+        <button class="btn-blue">CONTA</button>
+    </form>
+</div>
+
 {% endif %}
 
-<a href="{{ url_for('index') }}">Torna indietro</a>
+<a href="{{ url_for('index') }}">← Torna indietro</a>
+
+<script>
+setInterval(() => {
+    location.reload();
+}, 5000);
+</script>
+
+{% endblock %}

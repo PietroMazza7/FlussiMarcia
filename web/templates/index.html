@@ -1,11 +1,19 @@
-<h1>Nodi</h1>
+{% extends "base.html" %}
 
-<ul>
-{% for nome in nodi %}
-  <li>
-    <a href="/nodo/{{ nome }}">
-      {{ nome }}
-    </a>
-  </li>
-{% endfor %}
-</ul>
+{% block content %}
+
+<h1>Dashboard</h1>
+
+<div class="card">
+    <div class="stat">Nodi disponibili</div>
+
+    {% for nome in nodi %}
+        <div>
+            <a href="{{ url_for('pagina_nodo', nome=nome) }}">
+                {{ nome }}
+            </a>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
