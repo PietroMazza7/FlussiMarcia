@@ -3,11 +3,12 @@ from datetime import datetime
 
 from app.graph import Nodo, Collegamento
 
-def carica_grafo(path):
+
+def carica_grafo(path: str) -> dict[str, Nodo]:
     with open(path, "r") as f:
         data = json.load(f)
 
-    nodi = {}
+    nodi: dict[str, Nodo] = {}
 
     # crea nodi
     for n in data["nodi"]:
@@ -15,7 +16,6 @@ def carica_grafo(path):
             nome=n["nome"],
             probabilita=n.get("probabilita", {})
         )
-
         nodi[n["nome"]] = nodo
 
     # crea collegamenti
@@ -34,9 +34,10 @@ def carica_grafo(path):
 
     return nodi
 
-def carica_eventi(path):
-    with open(path, "r") as file:
-        eventi = json.load(file)
+
+def carica_eventi(path: str) -> list[dict]:
+    with open(path, "r") as f:
+        eventi = json.load(f)
 
     for evento in eventi:
         evento["timestamp"] = datetime.fromisoformat(evento["timestamp"])

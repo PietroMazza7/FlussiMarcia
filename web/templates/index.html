@@ -1,0 +1,11 @@
+<h1>Nodi</h1>
+
+<ul>
+{% for nome in nodi %}
+  <li>
+    <a href="/nodo/{{ nome }}">
+      {{ nome }}
+    </a>
+  </li>
+{% endfor %}
+</ul>

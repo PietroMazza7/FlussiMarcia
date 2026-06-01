@@ -1,0 +1,28 @@
+<h1>{{ nodo.nome }}</h1>
+
+<p>
+Persone in arrivo entro 10 minuti: {{ arrivi }}
+</p>
+
+{% if nodo.nome == "S" %}
+<form method="POST" action="{{ url_for('genera') }}">
+    <button type="submit">Genera</button>
+</form>
+
+<form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
+    <button type="submit">Conta arrivo</button>
+</form>
+
+<p>
+Totale partiti: {{ sistema.totale_partiti }}<br>
+Totale arrivati: {{ sistema.totale_arrivati }}<br>
+Sul percorso: {{ sistema.sul_percorso }}
+</p>
+
+{% else %}
+<form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
+    <button type="submit">Conta</button>
+</form>
+{% endif %}
+
+<a href="{{ url_for('index') }}">Torna indietro</a>

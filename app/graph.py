@@ -3,24 +3,29 @@ from collections import deque
 from datetime import datetime, timedelta
 import random
 
+
 @dataclass
 class Collegamento:
     partenza: "Nodo"
     arrivo: "Nodo"
-    tempo: int
+    tempo: int  # minuti medi
     ingressi: deque[datetime] = field(default_factory=deque)
 
-    def aggiungi(self, ora):
+    def aggiungi(self, ora: datetime):
         self.ingressi.append(ora)
 
-    def arrivi_entro(self, ora, minuti: int) -> int:
+    def arrivi_entro(self, ora: datetime, minuti: int) -> int:
         soglia = ora + timedelta(minutes=minuti)
 
-        return sum(ingresso + timedelta(minutes=self.tempo) <= soglia for ingresso in self.ingressi)
+        return sum(
+            ingresso + timedelta(minutes=self.tempo) <= soglia
+            for ingresso in self.ingressi
+        )
 
     def rimuovi_piu_vicino_arrivo(self):
         if self.ingressi:
             self.ingressi.popleft()
+
 
 @dataclass
 class Nodo:
@@ -30,7 +35,7 @@ class Nodo:
     uscenti: list["Collegamento"] = field(default_factory=list)
     entranti: list["Collegamento"] = field(default_factory=list)
 
-    def genera(self, ora):
+    def genera(self, ora: datetime):
         if not self.uscenti:
             return
 
@@ -56,12 +61,15 @@ class Nodo:
 
         return candidato
 
-    def conta(self, ora):
+    def conta(self, ora: datetime):
         c = self.scegli_da_rimuovere()
 
         if c:
             c.rimuovi_piu_vicino_arrivo()
             self.genera(ora)
 
-    def in_arrivo(self, ora, minuti):
-        return sum(coll.arrivi_entro(ora, minuti) for coll in self.entranti)
+    def in_arrivo(self, ora: datetime, minuti: int) -> int:
+        return sum(
+            coll.arrivi_entro(ora, minuti)
+            for coll in self.entranti
+        )
