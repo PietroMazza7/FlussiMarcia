@@ -64,7 +64,3 @@ def genera():
     return redirect(
         url_for("pagina_nodo", nome="S")
     )
-
-
-if __name__ == "__main__":
-    sito.run(debug=True)
