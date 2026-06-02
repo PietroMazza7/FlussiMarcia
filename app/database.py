@@ -70,7 +70,7 @@ def conta_collegamento(collegamento) -> int:
         SELECT COUNT(*) as c
         FROM collegamenti
         WHERE partenza = ? AND arrivo = ?
-    """, (collegamento.partenza, collegamento.arrivo))
+    """, (collegamento.partenza.nome, collegamento.arrivo.nome))
 
     val = cur.fetchone()["c"]
     conn.close()
@@ -86,7 +86,7 @@ def arrivi_entro_collegamento(collegamento, ora: datetime, minuti: int) -> int:
         SELECT ingresso
         FROM collegamenti
         WHERE partenza = ? AND arrivo = ?
-    """, (collegamento.partenza, collegamento.arrivo))
+    """, (collegamento.partenza.nome, collegamento.arrivo.nome))
 
     rows = cur.fetchall()
     conn.close()
@@ -106,7 +106,7 @@ def rimuovi_piu_vecchio(collegamento, peek: bool = False):
         WHERE partenza = ? AND arrivo = ?
         ORDER BY ingresso ASC
         LIMIT 1
-    """, (collegamento.partenza, collegamento.arrivo))
+    """, (collegamento.partenza.nome, collegamento.arrivo.nome))
 
     row = cur.fetchone()
 
@@ -127,3 +127,60 @@ def rimuovi_piu_vecchio(collegamento, peek: bool = False):
     conn.close()
 
     return datetime.fromisoformat(row["ingresso"])
+
+def get_totale_partiti():
+    conn = connessione()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT totale_partiti
+        FROM sistema
+        WHERE id = 1
+    """)
+
+    valore = cur.fetchone()["totale_partiti"]
+    conn.close()
+
+    return valore
+
+
+def get_totale_arrivati():
+    conn = connessione()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT totale_arrivati
+        FROM sistema
+        WHERE id = 1
+    """)
+
+    valore = cur.fetchone()["totale_arrivati"]
+    conn.close()
+
+    return valore
+
+def incrementa_partiti():
+    conn = connessione()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE sistema
+        SET totale_partiti = totale_partiti + 1
+        WHERE id = 1
+    """)
+
+    conn.commit()
+    conn.close()
+
+def incrementa_arrivati():
+    conn = connessione()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE sistema
+        SET totale_arrivati = totale_arrivati + 1
+        WHERE id = 1
+    """)
+
+    conn.commit()
+    conn.close()

@@ -76,7 +76,8 @@ class Nodo:
         if c:
             c.rimuovi_piu_vicino_arrivo()
 
-        self.genera(ora)
+        if self.nome != 'S':
+            self.genera(ora)
 
     def in_arrivo(self, ora: datetime, minuti: int) -> int:
         return sum(
