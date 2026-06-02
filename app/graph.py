@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from collections import deque
 from datetime import datetime, timedelta
 import random
 
@@ -9,7 +8,6 @@ class Collegamento:
     partenza: "Nodo"
     arrivo: "Nodo"
     tempo: int  # minuti medi
-    ingressi: deque[datetime] = field(default_factory=deque)
 
     def aggiungi(self, ora: datetime):
         self.ingressi.append(ora)
