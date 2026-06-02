@@ -2,6 +2,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import random
 
+from app.database import (
+    aggiungi_persona,
+    conta_collegamento,
+    rimuovi_piu_vecchio,
+    arrivi_entro_collegamento
+)
+
 
 @dataclass
 class Collegamento:
@@ -10,19 +17,21 @@ class Collegamento:
     tempo: int  # minuti medi
 
     def aggiungi(self, ora: datetime):
-        self.ingressi.append(ora)
+        aggiungi_persona(self, ora)
 
     def arrivi_entro(self, ora: datetime, minuti: int) -> int:
-        soglia = ora + timedelta(minutes=minuti)
-
-        return sum(
-            ingresso + timedelta(minutes=self.tempo) <= soglia
-            for ingresso in self.ingressi
+        return arrivi_entro_collegamento(
+            self.partenza.nome,
+            self.arrivo.nome,
+            ora,
+            minuti
         )
 
     def rimuovi_piu_vicino_arrivo(self):
-        if self.ingressi:
-            self.ingressi.popleft()
+        rimuovi_piu_vecchio(
+            self.partenza.nome,
+            self.arrivo.nome
+        )
 
 
 @dataclass
@@ -47,10 +56,16 @@ class Nodo:
         miglior_arrivo = None
 
         for c in self.entranti:
-            if not c.ingressi:
+            count = conta_collegamento(c.partenza.nome, c.arrivo.nome)
+            if count == 0:
                 continue
 
-            ingresso = c.ingressi[0]
+            # scegliamo quello con ingresso più “vecchio”
+            ingresso = rimuovi_piu_vecchio(c.partenza.nome, c.arrivo.nome, peek=True)
+
+            if ingresso is None:
+                continue
+
             arrivo = ingresso + timedelta(minutes=c.tempo)
 
             if miglior_arrivo is None or arrivo < miglior_arrivo:
@@ -64,7 +79,8 @@ class Nodo:
 
         if c:
             c.rimuovi_piu_vicino_arrivo()
-            self.genera(ora)
+
+        self.genera(ora)
 
     def in_arrivo(self, ora: datetime, minuti: int) -> int:
         return sum(

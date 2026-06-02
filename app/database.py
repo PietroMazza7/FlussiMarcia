@@ -1,12 +1,18 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DB_PATH = "data/stato.db"
 
 
 def connessione():
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
+
+# -------------------------
+# INIT
+# -------------------------
 
 def init_db():
     conn = connessione()
@@ -14,6 +20,7 @@ def init_db():
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS sistema(
+        id INTEGER PRIMARY KEY CHECK (id = 1),
         totale_partiti INTEGER,
         totale_arrivati INTEGER
     )
@@ -21,6 +28,7 @@ def init_db():
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS collegamenti(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         partenza TEXT,
         arrivo TEXT,
         ingresso TEXT
@@ -30,36 +38,115 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def init_sistema():
     conn = connessione()
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) FROM sistema")
-
-    if cur.fetchone()[0] == 0:
-        cur.execute(
-            "INSERT INTO sistema VALUES (?, ?)",
-            (0, 0)
-        )
+    cur.execute("SELECT COUNT(*) as c FROM sistema")
+    if cur.fetchone()["c"] == 0:
+        cur.execute("""
+            INSERT INTO sistema (id, totale_partiti, totale_arrivati)
+            VALUES (1, 0, 0)
+        """)
 
     conn.commit()
     conn.close()
 
-def aggiungi_persona(collegamento, ora):
+
+# -------------------------
+# INSERT (genera persona)
+# -------------------------
+
+def aggiungi_persona(collegamento, ora: datetime):
     conn = connessione()
     cur = conn.cursor()
 
-    cur.execute(
-        """
-        INSERT INTO collegamenti
+    cur.execute("""
+        INSERT INTO collegamenti (partenza, arrivo, ingresso)
         VALUES (?, ?, ?)
-        """,
-        (
-            collegamento.partenza.nome,
-            collegamento.arrivo.nome,
-            ora.isoformat()
-        )
-    )
+    """, (
+        collegamento.partenza.nome,
+        collegamento.arrivo.nome,
+        ora.isoformat()
+    ))
 
     conn.commit()
     conn.close()
+
+
+# -------------------------
+# QUERY: conteggio
+# -------------------------
+
+def conta_collegamento(partenza: str, arrivo: str) -> int:
+    conn = connessione()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT COUNT(*) as c
+        FROM collegamenti
+        WHERE partenza = ? AND arrivo = ?
+    """, (partenza, arrivo))
+
+    val = cur.fetchone()["c"]
+    conn.close()
+    return val
+
+
+def arrivi_entro_collegamento(partenza: str, arrivo: str, ora: datetime, minuti: int) -> int:
+    soglia = ora + timedelta(minutes=minuti)
+
+    conn = connessione()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT ingresso
+        FROM collegamenti
+        WHERE partenza = ? AND arrivo = ?
+    """, (partenza, arrivo))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    return sum(
+        datetime.fromisoformat(r["ingresso"]) + timedelta(minutes=0) <= soglia
+        for r in rows
+    )
+
+
+# -------------------------
+# DELETE (rimuovi persona più vecchia)
+# -------------------------
+
+def rimuovi_piu_vecchio(partenza: str, arrivo: str, peek: bool = False):
+    conn = connessione()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, ingresso
+        FROM collegamenti
+        WHERE partenza = ? AND arrivo = ?
+        ORDER BY ingresso ASC
+        LIMIT 1
+    """, (partenza, arrivo))
+
+    row = cur.fetchone()
+
+    if not row:
+        conn.close()
+        return None
+
+    if peek:
+        conn.close()
+        return datetime.fromisoformat(row["ingresso"])
+
+    cur.execute("""
+        DELETE FROM collegamenti
+        WHERE id = ?
+    """, (row["id"],))
+
+    conn.commit()
+    conn.close()
+
+    return datetime.fromisoformat(row["ingresso"])
