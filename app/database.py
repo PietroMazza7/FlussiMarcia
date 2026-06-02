@@ -3,16 +3,10 @@ from datetime import datetime, timedelta
 
 DB_PATH = "data/stato.db"
 
-
 def connessione():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
-
-# -------------------------
-# INIT
-# -------------------------
 
 def init_db():
     conn = connessione()
@@ -38,7 +32,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 def init_sistema():
     conn = connessione()
     cur = conn.cursor()
@@ -52,11 +45,6 @@ def init_sistema():
 
     conn.commit()
     conn.close()
-
-
-# -------------------------
-# INSERT (genera persona)
-# -------------------------
 
 def aggiungi_persona(collegamento, ora: datetime):
     conn = connessione()
@@ -74,12 +62,7 @@ def aggiungi_persona(collegamento, ora: datetime):
     conn.commit()
     conn.close()
 
-
-# -------------------------
-# QUERY: conteggio
-# -------------------------
-
-def conta_collegamento(partenza: str, arrivo: str) -> int:
+def conta_collegamento(collegamento) -> int:
     conn = connessione()
     cur = conn.cursor()
 
@@ -87,14 +70,13 @@ def conta_collegamento(partenza: str, arrivo: str) -> int:
         SELECT COUNT(*) as c
         FROM collegamenti
         WHERE partenza = ? AND arrivo = ?
-    """, (partenza, arrivo))
+    """, (collegamento.partenza, collegamento.arrivo))
 
     val = cur.fetchone()["c"]
     conn.close()
     return val
 
-
-def arrivi_entro_collegamento(partenza: str, arrivo: str, ora: datetime, minuti: int) -> int:
+def arrivi_entro_collegamento(collegamento, ora: datetime, minuti: int) -> int:
     soglia = ora + timedelta(minutes=minuti)
 
     conn = connessione()
@@ -104,22 +86,17 @@ def arrivi_entro_collegamento(partenza: str, arrivo: str, ora: datetime, minuti:
         SELECT ingresso
         FROM collegamenti
         WHERE partenza = ? AND arrivo = ?
-    """, (partenza, arrivo))
+    """, (collegamento.partenza, collegamento.arrivo))
 
     rows = cur.fetchall()
     conn.close()
 
     return sum(
-        datetime.fromisoformat(r["ingresso"]) + timedelta(minutes=0) <= soglia
+        datetime.fromisoformat(r["ingresso"]) + timedelta(minutes=collegamento.tempo) <= soglia
         for r in rows
     )
 
-
-# -------------------------
-# DELETE (rimuovi persona più vecchia)
-# -------------------------
-
-def rimuovi_piu_vecchio(partenza: str, arrivo: str, peek: bool = False):
+def rimuovi_piu_vecchio(collegamento, peek: bool = False):
     conn = connessione()
     cur = conn.cursor()
 
@@ -129,7 +106,7 @@ def rimuovi_piu_vecchio(partenza: str, arrivo: str, peek: bool = False):
         WHERE partenza = ? AND arrivo = ?
         ORDER BY ingresso ASC
         LIMIT 1
-    """, (partenza, arrivo))
+    """, (collegamento.partenza, collegamento.arrivo))
 
     row = cur.fetchone()
 

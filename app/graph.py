@@ -9,7 +9,6 @@ from app.database import (
     arrivi_entro_collegamento
 )
 
-
 @dataclass
 class Collegamento:
     partenza: "Nodo"
@@ -21,18 +20,15 @@ class Collegamento:
 
     def arrivi_entro(self, ora: datetime, minuti: int) -> int:
         return arrivi_entro_collegamento(
-            self.partenza.nome,
-            self.arrivo.nome,
+            self,
             ora,
             minuti
         )
 
     def rimuovi_piu_vicino_arrivo(self):
         rimuovi_piu_vecchio(
-            self.partenza.nome,
-            self.arrivo.nome
+            self
         )
-
 
 @dataclass
 class Nodo:
@@ -56,12 +52,12 @@ class Nodo:
         miglior_arrivo = None
 
         for c in self.entranti:
-            count = conta_collegamento(c.partenza.nome, c.arrivo.nome)
+            count = conta_collegamento(c)
             if count == 0:
                 continue
 
             # scegliamo quello con ingresso più “vecchio”
-            ingresso = rimuovi_piu_vecchio(c.partenza.nome, c.arrivo.nome, peek=True)
+            ingresso = rimuovi_piu_vecchio(c, peek=True)
 
             if ingresso is None:
                 continue
