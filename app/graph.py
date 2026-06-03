@@ -6,7 +6,8 @@ from app.database import (
     aggiungi_persona,
     conta_collegamento,
     rimuovi_piu_vecchio,
-    arrivi_entro_collegamento
+    arrivi_entro_collegamento,
+    incrementa_contati_nodo
 )
 
 @dataclass
@@ -81,6 +82,7 @@ class Nodo:
             return False
 
         c.rimuovi_piu_vicino_arrivo()
+        incrementa_contati_nodo(self.nome)
 
         if self.nome != 'S':
             self.genera(ora)

@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — FlussiMarcia{% endblock %}
+
+{% block content %}
+
+<style>
+.dash-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.dash-header h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 48px;
+  line-height: .9;
+  text-transform: uppercase;
+}
+.dash-header h1 span { color: var(--accent); }
+.dash-header .sub { font-size: 10px; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; margin-top: 6px; }
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px 18px;
+  position: relative;
+}
+.kpi::before { content:''; position:absolute; top:0; left:0; width:3px; height:100%; }
+.kpi.kp-y::before { background:var(--accent); }
+.kpi.kp-g::before { background:var(--green); }
+.kpi.kp-r::before { background:var(--red); }
+.kpi .kv { font-family:var(--display); font-weight:800; font-size:48px; line-height:1; color:var(--text); }
+.kpi .kl { font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+
+.graph-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  padding: 24px 12px 16px;
+  position: relative;
+}
+.graph-label {
+  font-size: 9px; letter-spacing: .25em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 16px; padding-left: 8px;
+}
+
+#grafo-svg { width: 100%; height: 340px; }
+
+.legend {
+  display: flex; gap: 20px; padding: 12px 8px 0; flex-wrap: wrap;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.btn { margin-bottom: 0; }
+
+.node-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 13px;
+}
+.node-table th {
+  font-size: 9px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--muted); font-weight: 400; padding: 8px 12px;
+  text-align: left; border-bottom: 1px solid var(--border);
+}
+.node-table td {
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 12px; color: var(--text);
+  vertical-align: middle;
+}
+.node-table tr:last-child td { border-bottom: none; }
+.node-table .nome-cell {
+  font-family: var(--display); font-weight: 700; font-size: 18px;
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.node-table .num { font-family: var(--display); font-weight: 700; font-size: 22px; }
+.badge {
+  display: inline-block; padding: 2px 8px; font-size: 10px;
+  letter-spacing: .1em; text-transform: uppercase;
+  border: 1px solid var(--border); color: var(--muted);
+  font-family: var(--mono);
+}
+.badge.hot { border-color: var(--accent); color: var(--accent); }
+.table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.table-card-label {
+  font-size: 9px; letter-spacing: .25em; text-transform: uppercase;
+  color: var(--muted); padding: 12px 12px 0;
+}
+
+#toast {
+  display: none;
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: var(--red); color: #fff;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .1em;
+  padding: 12px 20px; border-left: 4px solid #fff;
+  z-index: 100; white-space: nowrap;
+}
+</style>
+
+<div class="dash-header fade-in">
+  <div>
+    <h1>MARCIA<br><span>MONITOR</span></h1>
+    <p class="sub">Vista operativa — Nodo S</p>
+  </div>
+  <div style="text-align:right">
+    <div class="live-dot" style="font-size:11px; justify-content:flex-end;">Aggiornamento live</div>
+    <div style="font-size:10px; color:var(--muted); margin-top:4px; font-family:var(--mono);">ogni 4 secondi</div>
+  </div>
+</div>
+
+<div class="kpi-row fade-in">
+  <div class="kpi kp-g">
+    <div class="kv" id="kpi-partiti">{{ sistema.totale_partiti }}</div>
+    <div class="kl">Partiti</div>
+  </div>
+  <div class="kpi kp-y">
+    <div class="kv" id="kpi-percorso">{{ sistema.sul_percorso }}</div>
+    <div class="kl">In marcia</div>
+  </div>
+  <div class="kpi kp-r">
+    <div class="kv" id="kpi-arrivati">{{ sistema.totale_arrivati }}</div>
+    <div class="kl">Arrivati</div>
+  </div>
+</div>
+
+<div class="graph-wrap fade-in">
+  <div class="graph-label">Grafo del percorso — persone attese entro 10 min</div>
+  <svg id="grafo-svg" viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#3a3a3a"/>
+      </marker>
+      <marker id="arr-hot" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#f0c040"/>
+      </marker>
+    </defs>
+
+    <!-- Archi: calcolati sulle posizioni dei nodi
+         S(80,160) A(230,60) B(400,60) C(550,160) D(230,260) E(400,260)
+    -->
+    <!-- S->A -->
+    <line id="arc-S-A" x1="110" y1="148" x2="200" y2="80" stroke="#2a2a2a" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- A->B -->
+    <line id="arc-A-B" x1="270" y1="60" x2="360" y2="60" stroke="#2a2a2a" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- B->C -->
+    <line id="arc-B-C" x1="440" y1="72" x2="520" y2="148" stroke="#2a2a2a" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- C->S -->
+    <line id="arc-C-S" x1="520" y1="172" x2="110" y2="172" stroke="#2a2a2a" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- S->D -->
+    <line id="arc-S-D" x1="110" y1="172" x2="200" y2="248" stroke="#2a2a2a" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- D->B -->
+    <line id="arc-D-B" x1="268" y1="248" x2="390" y2="80" stroke="#2a2a2a" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+    <!-- D->E -->
+    <line id="arc-D-E" x1="270" y1="260" x2="360" y2="260" stroke="#2a2a2a" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- E->C -->
+    <line id="arc-E-C" x1="440" y1="248" x2="520" y2="172" stroke="#2a2a2a" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Etichette tempo su archi -->
+    <text x="152" y="98" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">10m</text>
+    <text x="315" y="52" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">10m</text>
+    <text x="492" y="102" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">10m</text>
+    <text x="315" y="185" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">10m</text>
+    <text x="148" y="228" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">20m</text>
+    <text x="315" y="268" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">30m</text>
+    <text x="490" y="228" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">30m</text>
+    <text x="332" y="155" font-size="10" fill="#444" font-family="monospace" text-anchor="middle">20m</text>
+
+    <!-- Nodi -->
+    <!-- S -->
+    <g id="node-S" style="cursor:pointer" onclick="window.location='/nodo/S'">
+      <rect x="42" y="134" width="76" height="52" rx="0" fill="#1c1c1c" stroke="#f0c040" stroke-width="2"/>
+      <text x="80" y="156" font-size="14" fill="#f0c040" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="2">S</text>
+      <text x="80" y="170" font-size="9" fill="#6b6b6b" font-family="monospace" text-anchor="middle">START/END</text>
+      <text id="nd-S" x="80" y="183" font-size="11" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
+    </g>
+    <!-- A -->
+    <g id="node-A" style="cursor:pointer" onclick="window.location='/nodo/A'">
+      <rect x="192" y="34" width="76" height="52" rx="0" fill="#141414" stroke="#2a2a2a" stroke-width="1.5"/>
+      <text x="230" y="56" font-size="14" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="2">A</text>
+      <text id="nd-A" x="230" y="76" font-size="11" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
+    </g>
+    <!-- B -->
+    <g id="node-B" style="cursor:pointer" onclick="window.location='/nodo/B'">
+      <rect x="362" y="34" width="76" height="52" rx="0" fill="#141414" stroke="#2a2a2a" stroke-width="1.5"/>
+      <text x="400" y="56" font-size="14" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="2">B</text>
+      <text id="nd-B" x="400" y="76" font-size="11" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
+    </g>
+    <!-- C -->
+    <g id="node-C" style="cursor:pointer" onclick="window.location='/nodo/C'">
+      <rect x="512" y="134" width="76" height="52" rx="0" fill="#141414" stroke="#2a2a2a" stroke-width="1.5"/>
+      <text x="550" y="156" font-size="14" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="2">C</text>
+      <text id="nd-C" x="550" y="176" font-size="11" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
+    </g>
+    <!-- D -->
+    <g id="node-D" style="cursor:pointer" onclick="window.location='/nodo/D'">
+      <rect x="192" y="234" width="76" height="52" rx="0" fill="#141414" stroke="#2a2a2a" stroke-width="1.5"/>
+      <text x="230" y="256" font-size="14" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="2">D</text>
+      <text id="nd-D" x="230" y="276" font-size="11" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
+    </g>
+    <!-- E -->
+    <g id="node-E" style="cursor:pointer" onclick="window.location='/nodo/E'">
+      <rect x="362" y="234" width="76" height="52" rx="0" fill="#141414" stroke="#2a2a2a" stroke-width="1.5"/>
+      <text x="400" y="256" font-size="14" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="2">E</text>
+      <text id="nd-E" x="400" y="276" font-size="11" fill="#e8e4dc" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
+    </g>
+  </svg>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Partenza/Arrivo</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3a3a3a; border:1px solid #666"></div>Nodo intermedio</div>
+    <div class="legend-item" style="gap:8px">
+      <svg width="24" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#f0c040" stroke-width="2"/></svg>
+      Persone in transito
+    </div>
+    <div class="legend-item" style="gap:8px">
+      <svg width="24" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#3a3a3a" stroke-width="1.5" stroke-dasharray="4,2"/></svg>
+      Percorso alternativo
+    </div>
+  </div>
+</div>
+
+<div class="action-row fade-in">
+  <div class="card accent-green" style="margin-bottom:0">
+    <div class="card-label">Nuova partenza</div>
+    <button class="btn btn-green" id="btn-genera" onclick="azionaGenera()">GENERA PERSONA</button>
+  </div>
+  <div class="card accent-red" style="margin-bottom:0">
+    <div class="card-label">Registra arrivo al traguardo</div>
+    <button class="btn btn-red" id="btn-conta" onclick="azionaConta()">CONTA ARRIVO</button>
+  </div>
+</div>
+
+<div class="table-card fade-in">
+  <div class="table-card-label">Dettaglio nodi</div>
+  <table class="node-table">
+    <thead>
+      <tr>
+        <th>Nodo</th>
+        <th>Arrivi 10 min</th>
+        <th>In transito</th>
+        <th>Totale contati</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="tabella-nodi">
+      {% for nome in nodi %}
+      <tr>
+        <td class="nome-cell">{{ nome }}</td>
+        <td class="num" id="tab-arr-{{ nome }}">—</td>
+        <td class="num" id="tab-trans-{{ nome }}">—</td>
+        <td class="num" id="tab-cont-{{ nome }}">—</td>
+        <td><a href="/nodo/{{ nome }}" style="color:var(--muted); font-size:11px; letter-spacing:.1em; text-decoration:none">APRI →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="toast"></div>
+
+<script>
+function mostraToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => { t.style.display = "none"; }, 3000);
+}
+
+function setBtn(id, txt, dis) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.textContent = txt;
+  b.disabled = dis;
+  b.style.opacity = dis ? "0.5" : "";
+}
+
+function animaNum(el, val) {
+  if (!el || el.textContent === String(val)) return;
+  el.style.color = "var(--accent)";
+  setTimeout(() => { el.textContent = val; el.style.color = ""; }, 120);
+}
+
+function aggiornaGrafo(dati) {
+  const nodi = dati.nodi;
+  const SOGLIA = 3;
+
+  for (const [nome, info] of Object.entries(nodi)) {
+    const ndEl = document.getElementById("nd-" + nome);
+    if (ndEl) {
+      const testo = info.arrivi_10 + " arr · " + info.in_transito + " trans";
+      if (ndEl.textContent !== testo) {
+        ndEl.textContent = testo;
+      }
+    }
+
+    animaNum(document.getElementById("tab-arr-"   + nome), info.arrivi_10);
+    animaNum(document.getElementById("tab-trans-" + nome), info.in_transito);
+    animaNum(document.getElementById("tab-cont-"  + nome), info.contati);
+
+    // Illumina archi uscenti se ci sono persone
+    const archi = {
+      "S": ["arc-S-A", "arc-S-D"],
+      "A": ["arc-A-B"],
+      "B": ["arc-B-C"],
+      "C": ["arc-C-S"],
+      "D": ["arc-D-B", "arc-D-E"],
+      "E": ["arc-E-C"]
+    };
+    if (archi[nome]) {
+      archi[nome].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (info.in_transito > 0) {
+          el.setAttribute("stroke", "#f0c040");
+          el.setAttribute("stroke-width", "2.5");
+          el.setAttribute("marker-end", "url(#arr-hot)");
+        } else {
+          el.setAttribute("stroke", "#2a2a2a");
+          el.setAttribute("stroke-width", nome === "D" && id === "arc-D-B" ? "1.5" : "2");
+          el.setAttribute("marker-end", "url(#arr)");
+        }
+      });
+    }
+  }
+
+  animaNum(document.getElementById("kpi-partiti"),  dati.totale_partiti);
+  animaNum(document.getElementById("kpi-percorso"), dati.sul_percorso);
+  animaNum(document.getElementById("kpi-arrivati"), dati.totale_arrivati);
+}
+
+async function poll() {
+  try {
+    const res  = await fetch("/api/grafo");
+    const data = await res.json();
+    aggiornaGrafo(data);
+  } catch(e) {}
+}
+
+async function azionaGenera() {
+  setBtn("btn-genera", "...", true);
+  try {
+    const res  = await fetch("/api/nodo/S/genera", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) mostraToast("⚠ " + (data.errore || "Errore"));
+    else await poll();
+  } catch(e) { mostraToast("⚠ Connessione persa"); }
+  finally { setBtn("btn-genera", "GENERA PERSONA", false); }
+}
+
+async function azionaConta() {
+  setBtn("btn-conta", "...", true);
+  try {
+    const res  = await fetch("/api/nodo/S/conta", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) mostraToast("⚠ " + (data.errore || "Nessuna persona in arrivo"));
+    else await poll();
+  } catch(e) { mostraToast("⚠ Connessione persa"); }
+  finally { setBtn("btn-conta", "CONTA ARRIVO", false); }
+}
+
+poll();
+setInterval(poll, 4000);
+</script>
+
+{% endblock %}

@@ -29,8 +29,44 @@ def init_db():
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS passaggi_nodo(
+        nome TEXT PRIMARY KEY,
+        contati INTEGER DEFAULT 0
+    )
+    """)
+
     conn.commit()
     conn.close()
+
+def incrementa_contati_nodo(nome: str):
+    conn = connessione()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO passaggi_nodo (nome, contati) VALUES (?, 1)
+        ON CONFLICT(nome) DO UPDATE SET contati = contati + 1
+    """, (nome,))
+    conn.commit()
+    conn.close()
+
+def get_contati_nodo(nome: str) -> int:
+    conn = connessione()
+    cur = conn.cursor()
+    cur.execute("SELECT contati FROM passaggi_nodo WHERE nome = ?", (nome,))
+    row = cur.fetchone()
+    conn.close()
+    return row["contati"] if row else 0
+
+def get_persone_su_archi_entranti(nome: str) -> int:
+    """Totale persone attualmente in transito verso questo nodo."""
+    conn = connessione()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT COUNT(*) as c FROM collegamenti WHERE arrivo = ?
+    """, (nome,))
+    val = cur.fetchone()["c"]
+    conn.close()
+    return val
 
 def init_sistema():
     conn = connessione()

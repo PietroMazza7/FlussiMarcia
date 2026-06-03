@@ -7,7 +7,9 @@ from app.database import (
     init_db,
     init_sistema,
     incrementa_partiti,
-    incrementa_arrivati
+    incrementa_arrivati,
+    get_contati_nodo,
+    get_persone_su_archi_entranti
 )
 
 sito = Flask(__name__)
@@ -20,7 +22,6 @@ init_sistema()
 
 
 def stato_nodo(nome):
-    """Stato attuale di un nodo come dict."""
     nodo = nodi[nome]
     return {
         "nome": nodo.nome,
@@ -45,6 +46,12 @@ def index():
 @sito.get("/nodo/<nome>")
 def pagina_nodo(nome):
     nodo = nodi[nome]
+    if nome == "S":
+        return render_template(
+            "dashboard.html",
+            nodi=nodi.keys(),
+            sistema=sistema
+        )
     return render_template(
         "nodo.html",
         nodo=nodo,
@@ -58,6 +65,25 @@ def pagina_nodo(nome):
 @sito.get("/api/nodo/<nome>")
 def api_nodo(nome):
     return jsonify(stato_nodo(nome))
+
+
+@sito.get("/api/grafo")
+def api_grafo():
+    """Stato completo del grafo: per ogni nodo arrivi, in transito, contati."""
+    ora = datetime.now()
+    risultato = {}
+    for nome, nodo in nodi.items():
+        risultato[nome] = {
+            "arrivi_10":  nodo.in_arrivo(ora, 10),
+            "in_transito": get_persone_su_archi_entranti(nome),
+            "contati":    get_contati_nodo(nome),
+        }
+    return jsonify({
+        "nodi": risultato,
+        "totale_partiti":  sistema.totale_partiti,
+        "totale_arrivati": sistema.totale_arrivati,
+        "sul_percorso":    sistema.sul_percorso,
+    })
 
 
 @sito.post("/api/nodo/<nome>/conta")
