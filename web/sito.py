@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, jsonify
 from datetime import datetime
 
 from app.loader import carica_grafo
@@ -19,6 +19,20 @@ init_db()
 init_sistema()
 
 
+def stato_nodo(nome):
+    """Stato attuale di un nodo come dict."""
+    nodo = nodi[nome]
+    return {
+        "nome": nodo.nome,
+        "arrivi_10": nodo.in_arrivo(datetime.now(), 10),
+        "sul_percorso": sistema.sul_percorso,
+        "totale_partiti": sistema.totale_partiti,
+        "totale_arrivati": sistema.totale_arrivati,
+    }
+
+
+# ── Pagine ────────────────────────────────────────────────
+
 @sito.get("/")
 def index():
     return render_template(
@@ -31,7 +45,6 @@ def index():
 @sito.get("/nodo/<nome>")
 def pagina_nodo(nome):
     nodo = nodi[nome]
-
     return render_template(
         "nodo.html",
         nodo=nodo,
@@ -40,23 +53,32 @@ def pagina_nodo(nome):
     )
 
 
-@sito.post("/nodo/<nome>/conta")
-def conta(nome):
-    nodi[nome].conta(datetime.now())
+# ── API ───────────────────────────────────────────────────
+
+@sito.get("/api/nodo/<nome>")
+def api_nodo(nome):
+    return jsonify(stato_nodo(nome))
+
+
+@sito.post("/api/nodo/<nome>/conta")
+def api_conta(nome):
+    nodo = nodi[nome]
+    ok = nodo.conta(datetime.now())
+
+    if not ok:
+        return jsonify({
+            "ok": False,
+            "errore": "Nessuna persona in transito verso questo nodo"
+        }), 400
 
     if nome == "S":
         incrementa_arrivati()
 
-    return redirect(
-        url_for("pagina_nodo", nome=nome)
-    )
+    return jsonify({"ok": True, **stato_nodo(nome)})
 
 
-@sito.post("/nodo/S/genera")
-def genera():
+@sito.post("/api/nodo/S/genera")
+def api_genera():
     nodi["S"].genera(datetime.now())
     incrementa_partiti()
-
-    return redirect(
-        url_for("pagina_nodo", nome="S")
-    )
+    return jsonify({"ok": True, **stato_nodo("S")})

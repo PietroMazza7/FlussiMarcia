@@ -1,19 +1,50 @@
 {% extends "base.html" %}
+{% block title %}Dashboard — FlussiMarcia{% endblock %}
 
 {% block content %}
 
-<h1>Dashboard</h1>
-
-<div class="card">
-    <div class="stat">Nodi disponibili</div>
-
-    {% for nome in nodi %}
-        <div>
-            <a href="{{ url_for('pagina_nodo', nome=nome) }}">
-                {{ nome }}
-            </a>
-        </div>
-    {% endfor %}
+<div class="page-heading fade-in">
+  <h1>PUNTI<br><span>PERCORSO</span></h1>
+  <p class="sub">Seleziona un nodo per contare</p>
 </div>
+
+<div class="stat-grid fade-in">
+  <div class="stat-cell">
+    <span class="value" id="idx-partiti">{{ sistema.totale_partiti }}</span>
+    <span class="label">Partiti</span>
+  </div>
+  <div class="stat-cell">
+    <span class="value" id="idx-percorso">{{ sistema.sul_percorso }}</span>
+    <span class="label">In marcia</span>
+  </div>
+  <div class="stat-cell">
+    <span class="value" id="idx-arrivati">{{ sistema.totale_arrivati }}</span>
+    <span class="label">Arrivati</span>
+  </div>
+</div>
+
+<div class="node-list">
+  {% for nome in nodi %}
+  <a href="{{ url_for('pagina_nodo', nome=nome) }}"
+     class="node-item fade-in {% if nome == 'S' %}node-special{% endif %}">
+    {{ nome }}
+    {% if nome == 'S' %}&nbsp;<small style="font-size:12px;opacity:0.5;font-weight:400;">PARTENZA / ARRIVO</small>{% endif %}
+    <span class="node-arrow">→</span>
+  </a>
+  {% endfor %}
+</div>
+
+<script>
+async function aggiornaDashboard() {
+  try {
+    const res = await fetch("/api/nodo/S");
+    const data = await res.json();
+    document.getElementById("idx-partiti").textContent = data.totale_partiti ?? document.getElementById("idx-partiti").textContent;
+    document.getElementById("idx-percorso").textContent = data.sul_percorso;
+    document.getElementById("idx-arrivati").textContent = data.totale_arrivati ?? document.getElementById("idx-arrivati").textContent;
+  } catch(e) {}
+}
+setInterval(aggiornaDashboard, 5000);
+</script>
 
 {% endblock %}

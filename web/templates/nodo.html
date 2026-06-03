@@ -1,49 +1,154 @@
 {% extends "base.html" %}
+{% block title %}Nodo {{ nodo.nome }} — FlussiMarcia{% endblock %}
 
 {% block content %}
 
-<h1>Nodo {{ nodo.nome }}</h1>
+<a href="{{ url_for('index') }}" class="back-link fade-in">Tutti i nodi</a>
 
-<div class="card">
-    <div class="stat">
-        Persone in arrivo (10 min): <b id="arrivi">{{ arrivi }}</b>
-    </div>
+<div class="page-heading fade-in">
+  <h1>NODO<br><span>{{ nodo.nome }}</span></h1>
+  {% if nodo.nome == 'S' %}
+  <p class="sub">Partenza &amp; Arrivo</p>
+  {% else %}
+  <p class="sub">Punto intermedio</p>
+  {% endif %}
 </div>
 
-{% if nodo.nome == "S" %}
-
-<div class="card">
-    <form method="POST" action="{{ url_for('genera') }}">
-        <button class="btn-green">GENERA PERSONA</button>
-    </form>
-
-    <form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
-        <button class="btn-red">CONTA ARRIVO</button>
-    </form>
+<!-- Arrivi nei prossimi 10 min -->
+<div class="card accent-yellow fade-in">
+  <div class="card-label">In arrivo nei prossimi 10 min</div>
+  <div class="arrivi-display">
+    <span class="number" id="arrivi">{{ arrivi }}</span>
+    <span class="unit">persone<br>attese</span>
+  </div>
 </div>
 
-<div class="card">
-    <div class="stat">Partiti: {{ sistema.totale_partiti }}</div>
-    <div class="stat">Arrivati: {{ sistema.totale_arrivati }}</div>
-    <div class="stat">Sul percorso: {{ sistema.sul_percorso }}</div>
+{% if nodo.nome == 'S' %}
+
+<!-- Statistiche globali -->
+<div class="stat-grid fade-in">
+  <div class="stat-cell">
+    <span class="value" id="partiti">{{ sistema.totale_partiti }}</span>
+    <span class="label">Partiti</span>
+  </div>
+  <div class="stat-cell">
+    <span class="value" id="sul_percorso">{{ sistema.sul_percorso }}</span>
+    <span class="label">In marcia</span>
+  </div>
+  <div class="stat-cell">
+    <span class="value" id="arrivati">{{ sistema.totale_arrivati }}</span>
+    <span class="label">Arrivati</span>
+  </div>
+</div>
+
+<!-- Nuova partenza -->
+<div class="card accent-green fade-in">
+  <div class="card-label">Nuova partenza</div>
+  <button class="btn btn-green" id="btn-genera" onclick="aziona('genera')">GENERA PERSONA</button>
+</div>
+
+<!-- Arrivo al traguardo -->
+<div class="card accent-red fade-in">
+  <div class="card-label">Registra arrivo al traguardo</div>
+  <button class="btn btn-red" id="btn-conta" onclick="aziona('conta')">CONTA ARRIVO</button>
 </div>
 
 {% else %}
 
-<div class="card">
-    <form method="POST" action="{{ url_for('conta', nome=nodo.nome) }}">
-        <button class="btn-blue">CONTA</button>
-    </form>
+<!-- Passaggio nodo intermedio -->
+<div class="card accent-blue fade-in">
+  <div class="card-label">Registra passaggio</div>
+  <button class="btn btn-blue" id="btn-conta" onclick="aziona('conta')">CONTA</button>
 </div>
 
 {% endif %}
 
-<a href="{{ url_for('index') }}">← Torna indietro</a>
+<!-- Toast notifica errore -->
+<div id="toast" style="
+  display:none;
+  position:fixed;
+  bottom:28px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--red);
+  color:#fff;
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.1em;
+  padding:12px 20px;
+  border-left:4px solid #fff;
+  z-index:100;
+  white-space:nowrap;
+  animation:fadeUp .25s ease;
+"></div>
 
 <script>
-setInterval(() => {
-    location.reload();
-}, 5000);
+const NODO = "{{ nodo.nome }}";
+
+function mostraToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.style.display = "none"; }, 3000);
+}
+
+function setBtn(id, testo, disabilitato) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.textContent = testo;
+  b.disabled = disabilitato;
+  b.style.opacity = disabilitato ? "0.5" : "";
+}
+
+function aggiornaDom(data) {
+  const animaNumero = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el || el.textContent === String(val)) return;
+    el.style.transition = "color 0.2s";
+    el.style.color = "var(--accent)";
+    setTimeout(() => { el.textContent = val; el.style.color = ""; }, 150);
+  };
+  animaNumero("arrivi",      data.arrivi_10);
+  animaNumero("sul_percorso",data.sul_percorso);
+  animaNumero("partiti",     data.totale_partiti);
+  animaNumero("arrivati",    data.totale_arrivati);
+}
+
+async function aziona(tipo) {
+  const btnId   = tipo === "genera" ? "btn-genera" : "btn-conta";
+  const url     = tipo === "genera"
+    ? "/api/nodo/S/genera"
+    : `/api/nodo/${NODO}/conta`;
+  const label   = tipo === "genera" ? "GENERA PERSONA" : (NODO === "S" ? "CONTA ARRIVO" : "CONTA");
+
+  setBtn(btnId, "...", true);
+
+  try {
+    const res  = await fetch(url, { method: "POST" });
+    const data = await res.json();
+
+    if (!res.ok) {
+      mostraToast("⚠ " + (data.errore || "Errore sconosciuto"));
+    } else {
+      aggiornaDom(data);
+    }
+  } catch (e) {
+    mostraToast("⚠ Connessione al server persa");
+  } finally {
+    setBtn(btnId, label, false);
+  }
+}
+
+async function aggiorna() {
+  try {
+    const res  = await fetch(`/api/nodo/${NODO}`);
+    const data = await res.json();
+    aggiornaDom(data);
+  } catch (e) {}
+}
+
+setInterval(aggiorna, 5000);
 </script>
 
 {% endblock %}

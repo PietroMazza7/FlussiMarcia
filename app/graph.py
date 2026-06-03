@@ -70,14 +70,22 @@ class Nodo:
 
         return candidato
 
-    def conta(self, ora: datetime):
+    def conta(self, ora: datetime) -> bool:
+        """
+        Registra il passaggio di una persona.
+        Ritorna True se c'era una persona da rimuovere, False altrimenti.
+        """
         c = self.scegli_da_rimuovere()
 
-        if c:
-            c.rimuovi_piu_vicino_arrivo()
+        if c is None:
+            return False
+
+        c.rimuovi_piu_vicino_arrivo()
 
         if self.nome != 'S':
             self.genera(ora)
+
+        return True
 
     def in_arrivo(self, ora: datetime, minuti: int) -> int:
         return sum(
