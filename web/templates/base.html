@@ -1,13 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <title>Sagra Monitor</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FlussiMarcia{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="{% block bodyclass %}{% endblock %}">
+
+{% block fullpage %}
 <div class="container">
-    {% block content %}{% endblock %}
+  <header class="topbar fade-in">
+    <span class="topbar-logo">FM</span>
+    <span class="topbar-title">FlussiMarcia</span>
+    <span class="topbar-spacer"></span>
+    <span class="topbar-time live-dot" id="clock">LIVE</span>
+  </header>
+  {% block content %}{% endblock %}
 </div>
+{% endblock %}
+
+<script>
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const el = document.getElementById('clock');
+    if (el) el.textContent = `${hh}:${mm}:${ss}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
 </body>
 </html>
