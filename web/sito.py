@@ -9,7 +9,8 @@ from app.database import (
     incrementa_partiti,
     incrementa_arrivati,
     get_contati_nodo,
-    get_persone_su_archi_entranti
+    get_persone_su_archi_entranti,
+    get_persone_per_arco
 )
 
 sito = Flask(__name__)
@@ -69,17 +70,22 @@ def api_nodo(nome):
 
 @sito.get("/api/grafo")
 def api_grafo():
-    """Stato completo del grafo: per ogni nodo arrivi, in transito, contati."""
+    """Stato completo del grafo: per ogni nodo arrivi, in transito, contati. Più conteggio per arco."""
     ora = datetime.now()
     risultato = {}
     for nome, nodo in nodi.items():
         risultato[nome] = {
-            "arrivi_10":  nodo.in_arrivo(ora, 10),
+            "arrivi_10":   nodo.in_arrivo(ora, 10),
             "in_transito": get_persone_su_archi_entranti(nome),
-            "contati":    get_contati_nodo(nome),
+            "contati":     get_contati_nodo(nome),
         }
+    # Archi: {"S-A": 3, "D-E": 1, ...} — solo quelli con persone
+    archi_raw = get_persone_per_arco()
+    archi = {f"{p}-{a}": c for (p, a), c in archi_raw.items()}
+
     return jsonify({
         "nodi": risultato,
+        "archi": archi,
         "totale_partiti":  sistema.totale_partiti,
         "totale_arrivati": sistema.totale_arrivati,
         "sul_percorso":    sistema.sul_percorso,

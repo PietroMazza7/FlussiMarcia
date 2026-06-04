@@ -68,6 +68,20 @@ def get_persone_su_archi_entranti(nome: str) -> int:
     conn.close()
     return val
 
+def get_persone_per_arco() -> dict:
+    """Restituisce {(partenza, arrivo): conteggio} per tutti gli archi con persone."""
+    conn = connessione()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT partenza, arrivo, COUNT(*) as c
+        FROM collegamenti
+        GROUP BY partenza, arrivo
+    """)
+    result = {(r["partenza"], r["arrivo"]): r["c"] for r in cur.fetchall()}
+    conn.close()
+    return result
+
+
 def init_sistema():
     conn = connessione()
     cur = conn.cursor()

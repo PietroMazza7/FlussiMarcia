@@ -331,11 +331,10 @@
 
       <!-- Nodo S -->
       <g id="node-S" style="cursor:pointer" onclick="window.location='/nodo/S'">
-        <rect x="20" y="178" width="160" height="64" fill="#fffbf3" stroke="#c47a00" stroke-width="2.5"/>
-        <text x="100" y="202" font-size="16" fill="#c47a00" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="3">S</text>
-        <text x="100" y="217" font-size="9"  fill="#a09890" font-family="monospace" text-anchor="middle">PARTENZA / ARRIVO</text>
-        <text id="nd-S-arr"   x="100" y="231" font-size="11" fill="#1a1814" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
-        <text id="nd-S-trans" x="100" y="244" font-size="10" fill="#8a8278" font-family="monospace" text-anchor="middle">…</text>
+        <rect x="20" y="171" width="160" height="78" fill="#fffbf3" stroke="#c47a00" stroke-width="2.5"/>
+        <text x="100" y="200" font-size="13" fill="#c47a00" font-family="'Barlow Condensed',sans-serif" font-weight="800" text-anchor="middle" letter-spacing="3">S — PARTENZA/ARRIVO</text>
+        <text id="nd-S-arr"   x="100" y="218" font-size="11" fill="#1a1814" font-family="'Barlow Condensed',sans-serif" font-weight="700" text-anchor="middle">…</text>
+        <text id="nd-S-trans" x="100" y="233" font-size="10" fill="#8a8278" font-family="monospace" text-anchor="middle">…</text>
       </g>
 
       <!-- Nodo A -->
@@ -469,29 +468,30 @@ function animaNum(el, val) {
   setTimeout(() => { el.textContent = val; el.style.color = ""; }, 150);
 }
 
-// Mappa: nodo_arrivo → arco_entrante
-// L'arco si illumina quando ci sono persone in transito verso quel nodo
-const ARCHI_ENTRANTI = {
-  "A": ["arc-S-A"],
-  "B": ["arc-A-B", "arc-D-B"],
-  "C": ["arc-B-C", "arc-E-C"],
-  "S": ["arc-C-S"],
-  "D": ["arc-S-D"],
-  "E": ["arc-D-E"]
-};
+// Lista di tutti gli archi presenti nel grafo
+const TUTTI_ARCHI = ["arc-S-A","arc-A-B","arc-B-C","arc-C-S","arc-S-D","arc-D-B","arc-D-E","arc-E-C"];
 
 function aggiornaGrafo(dati) {
   const nodi = dati.nodi;
+  const archi = dati.archi || {};  // es. {"S-A": 3, "D-E": 1}
 
-  // Prima spegni tutti gli archi
-  for (const ids of Object.values(ARCHI_ENTRANTI)) {
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.setAttribute("stroke", "#c8c0b4");
-      el.setAttribute("stroke-width", id === "arc-D-B" ? "1.5" : "2");
-      el.setAttribute("marker-end", "url(#arr)");
-    });
+  // Spegni tutti gli archi
+  TUTTI_ARCHI.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute("stroke", "#c8c0b4");
+    el.setAttribute("stroke-width", id === "arc-D-B" ? "1.5" : "2");
+    el.setAttribute("marker-end", "url(#arr)");
+  });
+
+  // Illumina solo gli archi con persone effettive
+  for (const [chiave, count] of Object.entries(archi)) {
+    if (count <= 0) continue;
+    const el = document.getElementById("arc-" + chiave);
+    if (!el) continue;
+    el.setAttribute("stroke", "#c47a00");
+    el.setAttribute("stroke-width", "3");
+    el.setAttribute("marker-end", "url(#arr-hot)");
   }
 
   for (const [nome, info] of Object.entries(nodi)) {
@@ -500,17 +500,6 @@ function aggiornaGrafo(dati) {
     const transEl = document.getElementById("nd-" + nome + "-trans");
     if (arrEl)   arrEl.textContent   = info.arrivi_10 + " in arrivo";
     if (transEl) transEl.textContent = info.in_transito + " in transito";
-
-    // Illumina archi ENTRANTI se ci sono persone in transito verso questo nodo
-    if (info.in_transito > 0 && ARCHI_ENTRANTI[nome]) {
-      ARCHI_ENTRANTI[nome].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.setAttribute("stroke", "#c47a00");
-        el.setAttribute("stroke-width", "3");
-        el.setAttribute("marker-end", "url(#arr-hot)");
-      });
-    }
 
     // Tabella
     const tArr   = document.getElementById("tab-arr-"   + nome);
