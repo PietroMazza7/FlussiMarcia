@@ -1,4 +1,6 @@
 from web.sito import sito
 
+app = sito
+
 if __name__ == "__main__":
-    sito.run(debug=True)
+    app.run(debug=True)
